@@ -1,0 +1,22 @@
+[project]
+name = "tsukimiso"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "torch",
+    "torchvision",
+    "numpy",
+    "PyYAML",
+    "omegaconf",
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "websocket-client",
+    "requests",
+    "protobuf"
+]
+
+[tool.fastapi]
+entrypoint = "tsukimiso.server:app"

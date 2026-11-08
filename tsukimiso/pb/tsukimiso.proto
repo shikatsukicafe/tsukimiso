@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+message TkmMetrics {
+  string name = 1;
+  float value = 2;
+}
+
+message TkmParams {
+  string op = 1;
+  int32 round = 2;
+  bytes params = 3;
+
+  repeated TkmMetrics metrics = 4;
+}
