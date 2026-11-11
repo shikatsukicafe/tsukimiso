@@ -27,7 +27,11 @@ class FedDatasetsBase(metaclass=ABCMeta):
         self._logger = getLogger("FedDatasets")
 
     def fed_dataset(self, client_id: int):
-        return {"data": self._fed_train_data_loader[client_id], "num": self._fed_train_data_num[client_id]}
+        return {
+            "train_dataloader": self._fed_train_data_loader[client_id],
+            "valid_dataloader": self._fed_valid_data_loader[client_id],
+            "train_num": self._fed_train_data_num[client_id]
+        }
 
     @property
     def train_data_loader(self) -> DataLoader:

@@ -11,6 +11,6 @@ partition_method: "homo"
 partition_alpha: 1.0
 
 # train
-round: 30
+round: 20
 batch_size: 100
 inner_loop: 100

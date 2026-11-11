@@ -1,5 +1,6 @@
 import logging
 import argparse
+import torch
 import torch.nn as nn
 from torchvision import models
 from torchvision import datasets
@@ -10,7 +11,7 @@ from tsukimiso import FedDatasetsClassification, TkmArguments, FedAvg
 
 formatter = '%(asctime)s [%(name)s] %(levelname)s :  %(message)s'
 basicConfig(level=logging.INFO, format=formatter)
-logger = getLogger("Frose-Runner")
+logger = getLogger("CIFAR10-Trainer")
 
 
 def _proc_run(conf: TkmArguments, client_id: int, dataset, device="cpu"):
@@ -24,7 +25,7 @@ def _proc_run(conf: TkmArguments, client_id: int, dataset, device="cpu"):
         logger.info("[Client:%4d]  Round-%d Start!!" % (client_id, optimizer.round))
         model.train().to(device)
         batch_loss = []
-        for batch_idx, (x, labels) in enumerate(dataset["data"]):
+        for batch_idx, (x, labels) in enumerate(dataset["train_dataloader"]):
             x, labels = x.to(device), labels.to(device)
             optimizer.zero_grad()
             labels = labels.long()
@@ -36,8 +37,29 @@ def _proc_run(conf: TkmArguments, client_id: int, dataset, device="cpu"):
 
             optimizer.step()
 
-        if len(batch_loss) > 0:
-            logger.info("[Client:%4d]    Loss: %.8f" % (client_id, sum(batch_loss) / len(batch_loss)))
+        class_correct = list(0. for _ in range(10))
+        class_total = list(0. for _ in range(10))
+        with torch.no_grad():
+            total = 0
+            correct = 0
+            for batch_idx, (x, target) in enumerate(dataset["valid_dataloader"]):
+                x = x.to(device)
+                target = target.to(device)
+                pred = model(x)
+                target = target.long()
+
+                _, predicted = torch.max(pred, 1)
+                c = (predicted == target).squeeze()
+                for i in range(4):
+                    label = target[i]
+                    class_correct[label] += c[i].item()
+                    class_total[label] += 1
+                total += target.size(0)
+                correct += (predicted == target).sum().item()
+
+            accuracy = correct / total
+
+        logger.info("[Client:%4d] Acc: %.4f Loss: %.4f" % (client_id, accuracy, sum(batch_loss) / len(batch_loss)))
 
         # round update
         state_dict = optimizer.update(model.state_dict())
