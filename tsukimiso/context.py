@@ -17,7 +17,7 @@ class TkmArguments:
     inner_loop: int = 100
 
     # data args
-    data_cache_dir: str = "./data"
+    data_cache_dir: str = "./data_cache"
     partition_method: str = "hetero"
     partition_alpha: float =  10.0
 

@@ -1,11 +1,9 @@
-import time
 import io
 import pickle
 import websocket
 import torch
 import uuid
 from typing import Dict
-from torch import nn
 from torch.optim.optimizer import Optimizer
 from logging import getLogger
 from abc import ABCMeta, abstractmethod
@@ -14,14 +12,14 @@ from ..pb import TkmParams
 
 
 class TsukimiOptFrame(Optimizer, metaclass=ABCMeta):
-    def __init__(self, params, defaults, args: TkmArguments):
+    def __init__(self, args: TkmArguments, params, defaults):
         super().__init__(params, defaults)
         self._client_id = str(uuid.uuid4())
         self._round = 0
         self._repo_name = args.repo_name
         self._server_url = args.server_url
 
-        ws_target_url = "ws://%s/ws/%s" % (self.server_url, self.client_id)
+        ws_target_url = "ws://%s/plugin/ws" % self.server_url
         self._ws = websocket.create_connection(ws_target_url)
         self._logger = getLogger("TsukimiOptimizer")
 
@@ -51,7 +49,7 @@ class TsukimiOptFrame(Optimizer, metaclass=ABCMeta):
         # get initialized model
         message = self._ws.recv()
         msg.ParseFromString(message)
-        buf = io.BytesIO(pickle.loads(msg.params))
+        buf = io.BytesIO(msg.params)
         return torch.load(buf)
 
     @torch.no_grad()
@@ -62,13 +60,16 @@ class TsukimiOptFrame(Optimizer, metaclass=ABCMeta):
         # send update
         msg = TkmParams()
         msg.op = "update"
+        msg.id = self._client_id
         msg.params = buf.getvalue()
         self._ws.send(msg.SerializeToString(), websocket.ABNF.OPCODE_BINARY)
 
         # get aggregated model
         message = self._ws.recv()
         msg.ParseFromString(message)
-        buf = io.BytesIO(pickle.loads(msg.params))
+        buf = io.BytesIO(msg.params)
+
+        self._round += 1
         return torch.load(buf)
 
     @abstractmethod

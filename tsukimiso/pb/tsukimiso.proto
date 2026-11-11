@@ -6,9 +6,10 @@ message TkmMetrics {
 }
 
 message TkmParams {
-  string op = 1;
-  int32 round = 2;
-  bytes params = 3;
+  string id = 1;
+  string op = 2;
+  int32 round = 3;
+  bytes params = 4;
 
-  repeated TkmMetrics metrics = 4;
+  repeated TkmMetrics metrics = 5;
 }

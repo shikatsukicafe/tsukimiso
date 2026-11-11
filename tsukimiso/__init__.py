@@ -1,13 +1,10 @@
-from .aggregator import FedAvgAggregator
+from .context import TkmArguments
 from .optimizer import FedAvg
 from .datasets import FedDatasetsClassification
-from .context import TkmArguments
 
 
 __all__ = [
-    "FedAvgAggregator",
+    "TkmArguments",
     "FedAvg",
     "FedDatasetsClassification",
-    "TkmArguments",
 ]
-

@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "tsukimiso"
 version = "0.1.0"
@@ -10,7 +14,7 @@ dependencies = [
     "numpy",
     "PyYAML",
     "omegaconf",
-    "fastapi",
+    "starlette",
     "uvicorn[standard]",
     "pydantic",
     "websocket-client",
@@ -18,5 +22,5 @@ dependencies = [
     "protobuf"
 ]
 
-[tool.fastapi]
-entrypoint = "tsukimiso.server:app"
+[project.scripts]
+tsukimisrv = "tsukimiso.server:run"
