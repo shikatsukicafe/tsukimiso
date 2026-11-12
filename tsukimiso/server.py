@@ -9,7 +9,6 @@ from .aggregator import TkmSrvMixin
 
 
 def load_extension_route(extension_module: str):
-    """拡張モジュールを動的ロードし、ルートを生成して返す関数"""
     if extension_module:
         if extension_module.endswith(".py"):
             file_path = os.path.abspath(extension_module)
@@ -44,4 +43,4 @@ def create_app():
 
 def run(host: str = "127.0.0.1", port: int = 9200, ws_max_size: int = 1024 * 1024 * 1024):
     app = create_app()
-    uvicorn.run(app, host=host, port=port, ws_max_size=ws_max_size)
+    uvicorn.run(app, host=host, port=port, ws_max_size=ws_max_size, ws_ping_interval=120., ws_ping_timeout=120.)

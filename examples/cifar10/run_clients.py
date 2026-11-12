@@ -2,51 +2,51 @@ import logging
 import argparse
 import torch
 import torch.nn as nn
-from torchvision import models
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 from logging import basicConfig, getLogger
 from multiprocessing import Process, set_start_method, get_start_method
-from tsukimiso import FedDatasetsClassification, TkmArguments, FedAvg
+from tsukimiso import FedDatasetsClassification, TkmArguments, TkmTrainer
+from model import ResNet18
 
 formatter = '%(asctime)s [%(name)s] %(levelname)s :  %(message)s'
 basicConfig(level=logging.INFO, format=formatter)
 logger = getLogger("CIFAR10-Trainer")
 
 
-def _proc_run(conf: TkmArguments, client_id: int, dataset, device="cpu"):
-    model = models.resnet18()
-    optimizer = FedAvg(conf, model.parameters(), lr=0.1, weight_decay=0.01)
-    state_dict = optimizer.hello()
-    model.load_state_dict(state_dict)
-
-    criterion = nn.CrossEntropyLoss()
-    while optimizer.round <= conf.round:
-        logger.info("[Client:%4d]  Round-%d Start!!" % (client_id, optimizer.round))
-        model.train().to(device)
+class Cifar10Trainer(TkmTrainer):
+    def train(self)-> dict:
+        logger.info("[Client: %s]  Round-%d Start!!" % (self.client_id, self.round))
         batch_loss = []
-        for batch_idx, (x, labels) in enumerate(dataset["train_dataloader"]):
-            x, labels = x.to(device), labels.to(device)
-            optimizer.zero_grad()
+        for x, labels in self.train_dataloader:
+            x, labels = x.to(self.device), labels.to(self.device)
+            self.optimizer.zero_grad()
             labels = labels.long()
 
-            log_probs = model(x)
-            loss = criterion(log_probs, labels)  # pylint: disable=E1102
+            log_probs = self.model(x)
+            loss = self.loss_func(log_probs, labels)  # pylint: disable=E1102
             loss.backward()
             batch_loss.append(loss.item())
 
-            optimizer.step()
+            self.optimizer.step()
 
+        return {"loss": sum(batch_loss) / len(batch_loss)}
+
+    def valid(self) -> dict:
         class_correct = list(0. for _ in range(10))
         class_total = list(0. for _ in range(10))
+
+        batch_loss = []
         with torch.no_grad():
             total = 0
             correct = 0
-            for batch_idx, (x, target) in enumerate(dataset["valid_dataloader"]):
-                x = x.to(device)
-                target = target.to(device)
-                pred = model(x)
+            for x, target in self.valid_dataloader:
+                x = x.to(self.device)
+                target = target.to(self.device)
+                pred = self.model(x)
                 target = target.long()
+                loss = self.loss_func(pred, target)  # pylint: disable=E1102
+                batch_loss.append(loss.item())
 
                 _, predicted = torch.max(pred, 1)
                 c = (predicted == target).squeeze()
@@ -59,14 +59,21 @@ def _proc_run(conf: TkmArguments, client_id: int, dataset, device="cpu"):
 
             accuracy = correct / total
 
-        logger.info("[Client:%4d] Acc: %.4f Loss: %.4f" % (client_id, accuracy, sum(batch_loss) / len(batch_loss)))
+        return {"accuracy": accuracy, "loss": sum(batch_loss) / len(batch_loss)}
 
-        # round update
-        state_dict = optimizer.update(model.state_dict())
-        model.load_state_dict(state_dict)
 
-    # close
-    logger.info("[Client:%4d]  Training Finished!!" % (client_id,))
+def _proc_run(conf: TkmArguments, dataset):
+    model = ResNet18()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1, weight_decay=0.01)
+    trainer = Cifar10Trainer(
+        args=conf,
+        model=model,
+        optimizer=optimizer,
+        loss_func=nn.CrossEntropyLoss(),
+        train_dataloader=dataset["train_dataloader"],
+        valid_dataloader=dataset["valid_dataloader"]
+    )
+    trainer.run()
 
 
 def main():
@@ -87,9 +94,7 @@ def main():
 
     clients = []
     for client_id in range(conf.worker_num):
-        client = Process(target=_proc_run,
-                         args=(conf, client_id, fed_datasets.fed_dataset(client_id), conf.device,))
-
+        client = Process(target=_proc_run, args=(conf, fed_datasets.fed_dataset(client_id),))
         # client start
         client.start()
         clients.append(client)

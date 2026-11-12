@@ -1,10 +1,10 @@
 from .context import TkmArguments
-from .optimizer import FedAvg
+from .trainer import TkmTrainer
 from .datasets import FedDatasetsClassification
 
 
 __all__ = [
     "TkmArguments",
-    "FedAvg",
+    "TkmTrainer",
     "FedDatasetsClassification",
 ]

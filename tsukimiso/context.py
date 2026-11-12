@@ -16,6 +16,11 @@ class TkmArguments:
     batch_size: int = 100
     inner_loop: int = 100
 
+    # DP
+    dp: bool = False
+    dp_target_eps: float|int = 8.0
+    dp_target_delta: float|int|None = None
+
     # data args
     data_cache_dir: str = "./data_cache"
     partition_method: str = "hetero"
