@@ -10,6 +10,7 @@ from abc import ABCMeta, abstractmethod
 from opacus import PrivacyEngine
 from opacus.accountants.utils import get_noise_multiplier
 from opacus.utils.batch_memory_manager import BatchMemoryManager
+from safetensors.torch import save, load
 from tsukimiso.context import TkmArguments
 from tsukimiso.pb import TkmParams
 
@@ -53,7 +54,7 @@ class TkmTrainer(metaclass=ABCMeta):
 
         ws_target_url = "ws://%s/plugin/ws" % self.server_url
         self._ws = websocket.create_connection(ws_target_url)
-        self._model.load_state_dict(self.hello())
+        self.hello()
 
     def run(self):
         for _ in range(self._comm_round):
@@ -64,20 +65,17 @@ class TkmTrainer(metaclass=ABCMeta):
                         optimizer=self.optimizer
                 ) as memory_safe_data_loader:
                     self._train_dataloader = memory_safe_data_loader
-                    self.model.train().to(self.device)
+                    self.model.train()
                     train_metrics = self.train()
             else:
-                self.model.train().to(self.device)
+                self.model.train()
                 train_metrics = self.train()
 
             self.model.eval()
             valid_metrics = self.valid()
-
-            self.model.train().to("cpu")
-            state_dict = self.update(self.model.state_dict())
-            self.model.load_state_dict(state_dict)
-
             print("[Rnd=%d Cl:%s] tra: %s  / val: %s" % (self._round, self.client_id, str(train_metrics), str(valid_metrics)))
+
+            self.update()
 
     @abstractmethod
     def train(self) -> dict:
@@ -128,7 +126,7 @@ class TkmTrainer(metaclass=ABCMeta):
         return self._round
 
     @torch.no_grad()
-    def hello(self) -> dict:
+    def hello(self) -> None:
         # send hello
         msg = TkmParams()
         msg.op = "hello"
@@ -137,25 +135,27 @@ class TkmTrainer(metaclass=ABCMeta):
         # get initialized model
         message = self._ws.recv()
         msg.ParseFromString(message)
-        buf = io.BytesIO(msg.params)
-        return torch.load(buf)
+        self.update_st2pt(msg.params)
 
     @torch.no_grad()
-    def update(self, model_state_dict: dict) -> dict:
-        buf = io.BytesIO()
-        torch.save(model_state_dict, buf)
-
+    def update(self) -> None:
         # send update
         msg = TkmParams()
         msg.op = "update"
         msg.id = self._client_id
-        msg.params = buf.getvalue()
+        msg.params = self.update_pt2st()
         self._ws.send(msg.SerializeToString(), websocket.ABNF.OPCODE_BINARY)
 
         # get aggregated model
         message = self._ws.recv()
         msg.ParseFromString(message)
-        buf = io.BytesIO(msg.params)
+        self.update_st2pt(msg.params)
 
-        self._round += 1
-        return torch.load(buf)
+    def update_pt2st(self) -> bytes:
+        state_dict = self.model.cpu().state_dict()
+        return save(state_dict)
+
+    def update_st2pt(self, buf: bytes) -> None:
+        state_dict = load(buf)
+        self.model.load_state_dict(state_dict)
+        self.model.to(self.device)
