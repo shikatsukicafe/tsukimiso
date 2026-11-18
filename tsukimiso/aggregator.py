@@ -1,8 +1,8 @@
-import io
 import torch
 from typing import Optional
 from torch import nn
 from starlette.endpoints import WebSocketEndpoint
+from safetensors.torch import save, load
 from .pb import TkmParams
 
 
@@ -26,22 +26,16 @@ class TkmSrvMixin(WebSocketEndpoint):
         self._active_conn[websocket]["id"] = msg.id
 
         if msg.op == "hello":
-            buf = io.BytesIO()
-            torch.save(model.state_dict(), buf)
-            msg.params = buf.getvalue()
+            msg.params = save(model.state_dict())
             await websocket.send_bytes(msg.SerializeToString())
 
         elif msg.op == "update":
-            buf = io.BytesIO(msg.params)
-            self._active_conn[websocket]["params"] = torch.load(buf)
+            self._active_conn[websocket]["params"] = load(msg.params)
             self._active_conn[websocket]["received"] = True
 
             if self._is_all_received():
                 self.aggregate()
-
-                buf = io.BytesIO()
-                torch.save(model.state_dict(), buf)
-                msg.params = buf.getvalue()
+                msg.params = save(model.state_dict())
                 await self.broadcast(msg.SerializeToString())
 
                 self._clear_all_received()
