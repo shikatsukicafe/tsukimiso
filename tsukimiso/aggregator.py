@@ -72,13 +72,14 @@ class TkmSrvMixin(WebSocketEndpoint):
         model = cls.get_model()
 
         with torch.no_grad():
-            average_params = model.cpu().state_dict()
+            average_params = {}
             sample_rate = 1 / cls.client_num()
-            for i, v in enumerate(cls._active_conn.values()):
-                for k in average_params.keys():
+            for i, conn in enumerate(cls._active_conn.values()):
+                p = conn["params"]
+                for k, v in p.items():
                     if i == 0:
-                        average_params[k] = v["params"][k] * sample_rate
+                        average_params[k] = v * sample_rate
                     else:
-                        average_params[k] += v["params"][k] * sample_rate
+                        average_params[k] += v * sample_rate
 
             model.load_state_dict(average_params)

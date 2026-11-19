@@ -151,6 +151,8 @@ class TkmTrainer(metaclass=ABCMeta):
         msg.ParseFromString(message)
         self.update_st2pt(msg.params)
 
+        self._round += 1
+
     def update_pt2st(self) -> bytes:
         state_dict = self.model.cpu().state_dict()
         return save(state_dict)
