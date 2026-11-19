@@ -52,7 +52,7 @@ class TkmTrainer(metaclass=ABCMeta):
                 max_grad_norm=1.0,
             )
 
-        ws_target_url = "ws://%s/plugin/ws" % self.server_url
+        ws_target_url = "ws://%s/ws" % self.server_url
         self._ws = websocket.create_connection(ws_target_url)
         self.hello()
 

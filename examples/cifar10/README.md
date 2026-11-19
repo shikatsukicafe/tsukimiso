@@ -4,7 +4,7 @@
 
 #### server side
 ```shell
-export TKM_SRV_MODULE=server.py; uv run tsukimisrv
+uv run tsukimiso
 ```
 
 #### client side
