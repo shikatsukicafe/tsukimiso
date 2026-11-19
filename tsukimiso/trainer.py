@@ -52,11 +52,13 @@ class TkmTrainer(metaclass=ABCMeta):
                 max_grad_norm=1.0,
             )
 
-        ws_target_url = "ws://%s/plugin/ws" % self.server_url
+        ws_target_url = "ws://%s/ws" % self.server_url
         self._ws = websocket.create_connection(ws_target_url)
         self.hello()
 
     def run(self):
+        self.model.to(self.device)
+
         for _ in range(self._comm_round):
             if self._dp_on:
                 with BatchMemoryManager(
@@ -132,11 +134,6 @@ class TkmTrainer(metaclass=ABCMeta):
         msg.op = "hello"
         self._ws.send(msg.SerializeToString(), websocket.ABNF.OPCODE_BINARY)
 
-        # get initialized model
-        message = self._ws.recv()
-        msg.ParseFromString(message)
-        self.update_st2pt(msg.params)
-
     @torch.no_grad()
     def update(self) -> None:
         # send update
@@ -150,6 +147,8 @@ class TkmTrainer(metaclass=ABCMeta):
         message = self._ws.recv()
         msg.ParseFromString(message)
         self.update_st2pt(msg.params)
+
+        self._round += 1
 
     def update_pt2st(self) -> bytes:
         state_dict = self.model.cpu().state_dict()

@@ -25,4 +25,4 @@ dependencies = [
 ]
 
 [project.scripts]
-tsukimisrv = "tsukimiso.server:run"
+tsukimiso = "tsukimiso.server:run"
