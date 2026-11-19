@@ -8,7 +8,6 @@ from .pb import TkmParams
 
 class TkmSrvMixin(WebSocketEndpoint):
     encoding = "bytes"
-    model: Optional[nn.Module] = None
     _active_conn = {}
 
     async def on_connect(self, websocket):
@@ -20,22 +19,19 @@ class TkmSrvMixin(WebSocketEndpoint):
         }
 
     async def on_receive(self, websocket, data: bytes):
-        model = self.get_model()
         msg = TkmParams()
         msg.ParseFromString(data)
         self._active_conn[websocket]["id"] = msg.id
 
         if msg.op == "hello":
-            msg.params = save(model.state_dict())
-            await websocket.send_bytes(msg.SerializeToString())
+            pass
 
         elif msg.op == "update":
             self._active_conn[websocket]["params"] = load(msg.params)
             self._active_conn[websocket]["received"] = True
 
             if self._is_all_received():
-                self.aggregate()
-                msg.params = save(model.state_dict())
+                msg.params = self.aggregate()
                 await self.broadcast(msg.SerializeToString())
 
                 self._clear_all_received()
@@ -47,12 +43,6 @@ class TkmSrvMixin(WebSocketEndpoint):
     async def broadcast(cls, message: bytes):
         for connection in cls._active_conn:
             await connection.send_bytes(message)
-
-    @classmethod
-    def get_model(cls) -> nn.Module:
-        if cls.model is None:
-            raise ValueError("model is not initialized")
-        return cls.model
 
     @classmethod
     def client_num(cls) -> int:
@@ -68,9 +58,7 @@ class TkmSrvMixin(WebSocketEndpoint):
             conn["received"] = False
 
     @classmethod
-    def aggregate(cls):
-        model = cls.get_model()
-
+    def aggregate(cls) -> bytes:
         with torch.no_grad():
             average_params = {}
             sample_rate = 1 / cls.client_num()
@@ -82,4 +70,4 @@ class TkmSrvMixin(WebSocketEndpoint):
                     else:
                         average_params[k] += v * sample_rate
 
-            model.load_state_dict(average_params)
+        return save(average_params)

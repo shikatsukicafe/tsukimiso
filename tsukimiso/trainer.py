@@ -57,6 +57,8 @@ class TkmTrainer(metaclass=ABCMeta):
         self.hello()
 
     def run(self):
+        self.model.to(self.device)
+
         for _ in range(self._comm_round):
             if self._dp_on:
                 with BatchMemoryManager(
@@ -131,11 +133,6 @@ class TkmTrainer(metaclass=ABCMeta):
         msg = TkmParams()
         msg.op = "hello"
         self._ws.send(msg.SerializeToString(), websocket.ABNF.OPCODE_BINARY)
-
-        # get initialized model
-        message = self._ws.recv()
-        msg.ParseFromString(message)
-        self.update_st2pt(msg.params)
 
     @torch.no_grad()
     def update(self) -> None:
