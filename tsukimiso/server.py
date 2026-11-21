@@ -12,6 +12,14 @@ class TkmSrvAggregator(WebSocketEndpoint):
     _active_conn = {}
 
     async def on_connect(self, websocket):
+        """ WebSocket connection handler
+
+        Args:
+            websocket: starlette WebSocket object
+
+        Returns: None
+
+        """
         await websocket.accept()
         self._active_conn[websocket] = {
             "id": None,
@@ -20,6 +28,15 @@ class TkmSrvAggregator(WebSocketEndpoint):
         }
 
     async def on_receive(self, websocket, data: bytes):
+        """ WebSocket receive handler
+
+        Args:
+            websocket: starlette WebSocket object
+            data: received bytes
+
+        Returns: None
+
+        """
         msg = TkmParams()
         msg.ParseFromString(data)
         self._active_conn[websocket]["id"] = msg.id
@@ -38,28 +55,65 @@ class TkmSrvAggregator(WebSocketEndpoint):
                 self._clear_all_received()
 
     async def on_disconnect(self, websocket, close_code):
+        """ WebSocket disconnect handler
+
+        Args:
+            websocket: starlette WebSocket object
+            close_code: close code
+
+        Returns: None
+
+        """
         self._active_conn.pop(websocket, None)
 
     @classmethod
     async def broadcast(cls, message: bytes):
+        """ broadband on WebSocket
+
+        Args:
+            message: send message
+
+        Returns: None
+
+        """
         for connection in cls._active_conn:
             await connection.send_bytes(message)
 
     @classmethod
     def client_num(cls) -> int:
+        """
+
+        Returns: client num
+
+        """
         return len(cls._active_conn)
 
     @classmethod
     def _is_all_received(cls):
+        """
+
+        Returns: all received? (true or false)
+
+        """
         return all(conn["received"] for conn in cls._active_conn.values())
 
     @classmethod
     def _clear_all_received(cls):
+        """ clear all received flag
+
+        Returns: None
+
+        """
         for conn in cls._active_conn.values():
             conn["received"] = False
 
     @classmethod
     def aggregate(cls) -> bytes:
+        """ aggregate
+
+        Returns: aggregated params in safetensors format
+
+        """
         with torch.no_grad():
             average_params = {}
             sample_rate = 1 / cls.client_num()

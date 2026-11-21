@@ -16,6 +16,12 @@ logger = getLogger("CIFAR10-Trainer")
 
 class Cifar10Trainer(TkmTrainer):
     def train(self)-> dict:
+        """ training on 1round
+
+        Returns:
+            training metrics (dict)
+
+        """
         logger.info("[Client: %s]  Round-%d Start!!" % (self.client_id, self.round))
         batch_loss = []
         for x, labels in self.train_dataloader:
@@ -33,6 +39,12 @@ class Cifar10Trainer(TkmTrainer):
         return {"loss": sum(batch_loss) / len(batch_loss)}
 
     def valid(self) -> dict:
+        """ validation on 1-round
+
+        Returns:
+            validation metrics (dict)
+
+        """
         class_correct = list(0. for _ in range(10))
         class_total = list(0. for _ in range(10))
 
@@ -63,6 +75,15 @@ class Cifar10Trainer(TkmTrainer):
 
 
 def _proc_run(conf: TkmArguments, dataset):
+    """ process run per 1 client
+
+    Args:
+        conf: TkmArguments arguments
+        dataset: dataset (per 1 client)
+
+    Returns:
+
+    """
     model = ResNet18()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.01)
     trainer = Cifar10Trainer(

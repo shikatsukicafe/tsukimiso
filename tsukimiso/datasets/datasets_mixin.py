@@ -6,6 +6,16 @@ from torch.utils.data import Dataset, DataLoader, sampler
 
 class FedDatasetsBase(metaclass=ABCMeta):
     def __init__(self, batch_size, clients_num, train_data: Dataset, valid_data: Dataset, class_num=0, random_seed=0):
+        """ Dataset build Tool for Federate-learning
+
+        Args:
+            batch_size: batch size
+            clients_num: client num
+            train_data: train data in PyTorch format
+            valid_data: valid data in PyTorch format
+            class_num: class num
+            random_seed: random seed
+        """
         self._train_data = train_data
         self._valid_data = valid_data
         self._class_num = class_num
@@ -26,7 +36,16 @@ class FedDatasetsBase(metaclass=ABCMeta):
 
         self._logger = getLogger("FedDatasets")
 
-    def fed_dataset(self, client_id: int):
+    def fed_dataset(self, client_id: int) -> dict:
+        """ datasets for federate-learning
+
+        Args:
+            client_id: client id
+
+        Returns:
+            dict: train_dataloader, valid_dataloader, train_num
+
+        """
         return {
             "train_dataloader": self._fed_train_data_loader[client_id],
             "valid_dataloader": self._fed_valid_data_loader[client_id],
@@ -48,6 +67,13 @@ class FedDatasetsBase(metaclass=ABCMeta):
 
 class FedInnerLoopSampler(sampler.Sampler[int]):
     def __init__(self, batch_size: int, inner_loop: int, indices: List):
+        """ Sampler for inner loop of federate-learning
+
+        Args:
+            batch_size: batch size
+            inner_loop: inner loop
+            indices: dataset indices
+        """
         super().__init__()
         self._n_data = len(indices)
         self._batch_size = batch_size

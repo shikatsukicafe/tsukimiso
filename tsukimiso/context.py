@@ -31,6 +31,15 @@ class TkmArguments:
 
     @classmethod
     def from_yml(cls, yml_path: str):
+        """ reader config YAML file
+
+        Args:
+            yml_path: config YAML file
+
+        Returns:
+            TkmArguments from YAML config file
+
+        """
         loaded = OmegaConf.load(yml_path)
         read_conf = TkmArguments(**loaded)
 

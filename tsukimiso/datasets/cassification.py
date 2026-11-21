@@ -7,6 +7,19 @@ from .datasets_mixin import FedDatasetsBase, FedInnerLoopSampler
 class FedDatasetsClassification(FedDatasetsBase):
     def __init__(self, clients_num: int, batch_size: int, inner_loop: int, partition_method: str, partition_alpha: float,
                  train_data: Dataset, valid_data: Dataset, class_num: int, min_len=10):
+        """ Dataset build Tool for Federate-learning classification
+
+        Args:
+            clients_num: client num
+            batch_size: batch size
+            inner_loop: How often every N steps should communication take place?
+            partition_method: partition method (hetero or homo)
+            partition_alpha: partition alpha
+            train_data: train data in PyTorch format
+            valid_data: valid data in PyTorch format
+            class_num: class num
+            min_len: minimum number of datasets
+        """
         super().__init__(batch_size, clients_num, train_data, valid_data, class_num)
         self._partition_method = partition_method
         self._partition_alpha = partition_alpha
@@ -17,7 +30,17 @@ class FedDatasetsClassification(FedDatasetsBase):
         indices = self._partition_data(self._valid_data, self._valid_data_num, min_len)
         self._fed_valid_data_loader, _ = self._build_datasets(batch_size, inner_loop, self._valid_data, indices)
 
-    def _partition_data(self, dataset: Dataset, n_data: int, min_len: int):
+    def _partition_data(self, dataset: Dataset, n_data: int, min_len: int) -> dict:
+        """ data partitioning
+
+        Args:
+            dataset: dataset in PyTorch format
+            n_data: data num on dataset
+            min_len: minimum number of datasets
+
+        Returns:
+
+        """
         net_data_idx_map = {}
         np.random.seed(self._random_seed)
         target = np.array(dataset.targets)
@@ -63,7 +86,19 @@ class FedDatasetsClassification(FedDatasetsBase):
                                   (i, len(net_data_idx_map[i]), n_data))
         return net_data_idx_map
 
-    def _build_datasets(self, batch_size: int, inner_loop: int, dataset: Dataset, indices: Dict) -> (Dict, Dict):
+    def _build_datasets(self, batch_size: int, inner_loop: int, dataset: Dataset, indices: Dict) -> tuple[dict, dict]:
+        """ building dataset
+
+        Args:
+            batch_size: batch size
+            inner_loop: inner loop
+            dataset: dataset in PyTorch format
+            indices: indices of dataset
+
+        Returns:
+            (dataloaders in PyTprch format, datasizes)
+
+        """
         dataloader = {}
         datasize = {}
 
