@@ -18,6 +18,16 @@ from tsukimiso.pb import TkmParams
 class TkmTrainer(metaclass=ABCMeta):
     def __init__(self, args: TkmArguments, model: nn.Module, optimizer: Optimizer, loss_func: nn.Module,
                  train_dataloader: DataLoader, valid_dataloader: DataLoader):
+        """ Tsukimiso trainer
+
+        Args:
+            args: args on TkmArguments
+            model: model in PyTorch format
+            optimizer: optimizer in PyTorch format
+            loss_func: loss function in PyTorch format
+            train_dataloader: train dataloader in PyTorch format
+            valid_dataloader: valid dataloader in PyTorch format
+        """
         self._logger = getLogger("TkmTrainer")
         self._client_id = str(uuid.uuid4())
         self._device = args.device
@@ -57,6 +67,11 @@ class TkmTrainer(metaclass=ABCMeta):
         self.hello()
 
     def run(self):
+        """ Tsukimiso trainer run
+
+        Returns: None
+
+        """
         self.model.to(self.device)
 
         for _ in range(self._comm_round):
@@ -129,6 +144,11 @@ class TkmTrainer(metaclass=ABCMeta):
 
     @torch.no_grad()
     def hello(self) -> None:
+        """ send hello message to Tsukimiso server
+
+        Returns: None
+
+        """
         # send hello
         msg = TkmParams()
         msg.op = "hello"
@@ -136,6 +156,11 @@ class TkmTrainer(metaclass=ABCMeta):
 
     @torch.no_grad()
     def update(self) -> None:
+        """ send update message to Tsukimiso server
+
+        Returns: None
+
+        """
         # send update
         msg = TkmParams()
         msg.op = "update"
@@ -151,10 +176,23 @@ class TkmTrainer(metaclass=ABCMeta):
         self._round += 1
 
     def update_pt2st(self) -> bytes:
+        """ update PyTorch model to safetensors
+
+        Returns: model parameters in safetensors format
+
+        """
         state_dict = self.model.cpu().state_dict()
         return save(state_dict)
 
     def update_st2pt(self, buf: bytes) -> None:
+        """ update safetensors model to PyTorch model
+
+        Args:
+            buf: safetensors object(bytes)
+
+        Returns: None (Expand directly into a class object)
+
+        """
         state_dict = load(buf)
         self.model.load_state_dict(state_dict)
         self.model.to(self.device)
