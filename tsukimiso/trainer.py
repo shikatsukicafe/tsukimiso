@@ -1,10 +1,10 @@
-import io
 import websocket
 import torch
 import uuid
 from torch import nn
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
+from opacus.optimizers.optimizer import DPOptimizer
 from logging import getLogger
 from abc import ABCMeta, abstractmethod
 from opacus import PrivacyEngine
@@ -92,7 +92,7 @@ class TkmTrainer(metaclass=ABCMeta):
         return self._model
 
     @property
-    def optimizer(self) -> torch.optim.Optimizer:
+    def optimizer(self) -> torch.optim.Optimizer|DPOptimizer:
         return self._optimizer
 
     @property

@@ -64,7 +64,7 @@ class Cifar10Trainer(TkmTrainer):
 
 def _proc_run(conf: TkmArguments, dataset):
     model = ResNet18()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1, weight_decay=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.01)
     trainer = Cifar10Trainer(
         args=conf,
         model=model,
