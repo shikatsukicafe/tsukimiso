@@ -1,8 +1,8 @@
 # common
-repo_name: "fedavg_cifar10_homo"
+repo_name: "fedavg_cifar10_hetero10"
 server_url: "localhost:9200"
 random_seed: 0
-worker_num: 4
+worker_num: 2
 log_output_path: "./log"
 device: "cuda"
 
@@ -12,5 +12,5 @@ partition_alpha: 10.
 
 # train
 round: 20
-batch_size: 100
+batch_size: 64
 inner_loop: 100
